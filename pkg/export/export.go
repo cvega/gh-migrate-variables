@@ -1,9 +1,9 @@
 package export
 
 import (
+    "encoding/csv"
     "fmt"
     "os"
-    "encoding/csv"
 
     "gh-migrate-variables/internal/api"
 
@@ -15,6 +15,7 @@ func CreateCSVs() error {
     organization := viper.GetString("SOURCE_ORGANIZATION")
     token := viper.GetString("SOURCE_TOKEN")
     filePrefix := viper.GetString("OUTPUT_FILE")
+    hostname := viper.GetString("SOURCE_HOSTNAME")
 
     if organization == "" || token == "" || filePrefix == "" {
         return fmt.Errorf("missing required environment variables: SOURCE_ORGANIZATION, SOURCE_TOKEN, or OUTPUT_FILE")
@@ -24,7 +25,7 @@ func CreateCSVs() error {
 
     // Fetch organization variables
     fmt.Printf("Fetching organization variables for %s...\n", organization)
-    orgVariables, err := api.GetOrgVariables(organization, token)
+    orgVariables, err := api.GetOrgVariables(organization, token, hostname)
     if err != nil {
         fmt.Printf("Warning: Failed to fetch organization variables: %v\n", err)
     } else {
@@ -34,7 +35,7 @@ func CreateCSVs() error {
 
     // Fetch repositories
     fmt.Printf("Fetching repository list for %s...\n", organization)
-    repos, err := api.GetRepositories(organization, token)
+    repos, err := api.GetRepositories(organization, token, hostname)
     if err != nil {
         return fmt.Errorf("failed to fetch repositories: %w", err)
     }
@@ -44,7 +45,7 @@ func CreateCSVs() error {
     var successful, failed int
     for _, repo := range repos {
         fmt.Printf("Processing repository %s...\n", repo)
-        repoVariables, err := api.GetRepoVariables(organization, repo, token)
+        repoVariables, err := api.GetRepoVariables(organization, repo, token, hostname)
         if err != nil {
             fmt.Printf("Warning: Failed to fetch variables for repo %s: %v\n", repo, err)
             failed++
@@ -106,8 +107,9 @@ func CreateCSVs() error {
     fmt.Printf("📁 Output file: %s\n", outputFile)
 
     if failed > 0 {
-        fmt.Println("\n⚠️  Export completed with some failures. Some variables may not have been exported.")
-        return fmt.Errorf("export completed with %d failed repositories", failed)
+        fmt.Printf("\n🛑  Export completed with some failures. Some variables may not have been exported.\n")
+        fmt.Printf("export completed with %d failed repositories", failed)
+        os.Exit(1)
     }
 
     fmt.Println("\n✅ Export completed successfully!")

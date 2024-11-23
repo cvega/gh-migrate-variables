@@ -19,7 +19,7 @@ Usage:
 Flags:
   -f, --file-prefix string    Output filenames prefix
   -h, --help                  help for export
-  -u, --hostname string       GitHub Enterprise hostname url (optional) Ex. https://github.example.com
+  -n, --hostname string       GitHub Enterprise Server hostname URL (optional) Ex. https://github.example.com
   -o, --organization string   Organization to export (required)
   -t, --token string          GitHub token (required)
 ```
@@ -53,10 +53,11 @@ Usage:
   migrate-variables sync [flags]
 
 Flags:
+  -f, --file-mapping string          CSV mapping file path to use for syncing variables (required)
   -h, --help                         help for sync
-  -m, --mapping-file string          Mapping file path to use for syncing variables (required)
-  -t, --target-organization string   Target Organization to sync variables to (required)
-  -b, --target-token string          Target Organization GitHub token. Scopes: admin:org (required)
+  -n, --hostname string              GitHub Enterprise Server hostname URL (optional) Ex. https://github.example.com
+  -o, --target-organization string   Target Organization to sync variables to (required)
+  -t, --target-token string          Target Organization GitHub token. Scopes: admin:org (required)
 ```
 
 ### Example Sync Command
@@ -101,6 +102,43 @@ REPO_VAR,repo-value,repository-name,private
 - `admin:org` scope is required for creating organization variables
 - `repo` scope is required for creating repository variables
 
+
+## Proxy Support
+
+The tool supports proxy configuration through both command-line flags and environment variables:
+
+### Command-line flags:
+```bash
+Global Flags:
+      --http-proxy string    HTTP proxy (can also use HTTP_PROXY env var)
+      --https-proxy string   HTTPS proxy (can also use HTTPS_PROXY env var)
+      --no-proxy string      No proxy list (can also use NO_PROXY env var)
+```
+```bash
+# Example usage with proxy:
+gh migrate-variables export \
+  --organization my-org \
+  --token ghp_xxxxxxxxxxxx \
+  --file-prefix my-vars \
+  --https-proxy https://proxy.example.com:8080
+```
+
+### Environment variables:
+- `HTTP_PROXY`: Proxy for HTTP requests
+- `HTTPS_PROXY`: Proxy for HTTPS requests
+- `NO_PROXY`: Comma-separated list of hosts to exclude from proxy
+
+Example with environment variables:
+```bash
+export HTTPS_PROXY=https://proxy.example.com:8080
+export NO_PROXY=github.internal.com
+```
+```bash
+gh migrate-variables export \
+  --organization my-org \
+  --token ghp_xxxxxxxxxxxx \
+  --file-prefix my-vars
+```
 
 ## Limitations
 

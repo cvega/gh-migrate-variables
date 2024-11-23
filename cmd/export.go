@@ -1,8 +1,11 @@
+// cmd/export.go
+
 package cmd
 
 import (
     "fmt"
     "os"
+    "strings"
 
     "gh-migrate-variables/pkg/export"
 
@@ -21,6 +24,15 @@ var ExportCmd = &cobra.Command{
         filePrefix := cmd.Flag("file-prefix").Value.String()
         hostname := cmd.Flag("hostname").Value.String()
 
+        if hostname != "" {
+            // Clean the hostname by removing any protocol and api/v3 if present
+            hostname = strings.TrimPrefix(hostname, "http://")
+            hostname = strings.TrimPrefix(hostname, "https://")
+            hostname = strings.TrimSuffix(hostname, "/api/v3")
+            hostname = strings.TrimSuffix(hostname, "/")
+            hostname = fmt.Sprintf("https://%s/api/v3", hostname)
+        }
+
         if filePrefix == "" {
             filePrefix = organization
         }
@@ -38,23 +50,28 @@ var ExportCmd = &cobra.Command{
         viper.BindEnv("SOURCE_HOSTNAME", "GHMV_SOURCE_HOSTNAME")
 
         if hostname != "" {
-            fmt.Printf("🌐 Using GitHub Enterprise Server: %s\n", hostname)
+            fmt.Printf("\n🔗 Using GitHub Enterprise Server: %s\n", hostname)
         } else {
-            fmt.Println("🌐 Using GitHub.com")
+            fmt.Println("\n📡 Using GitHub.com")
+        }
+
+        httpProxy := viper.GetString("HTTP_PROXY")
+        httpsProxy := viper.GetString("HTTPS_PROXY")
+        if httpProxy != "" || httpsProxy != "" {
+            fmt.Println("🔄 Proxy: ✅ Configured\n")
+        } else {
+            fmt.Println("🔄 Proxy: ❌ Not configured\n")
         }
 
         if err := export.CreateCSVs(); err != nil {
-            return fmt.Errorf("export failed: %w", err)
+            return fmt.Errorf("failed to export variables: %w", err)
         }
-        
+
         return nil
     },
 }
 
 func init() {
-    rootCmd.AddCommand(ExportCmd)
-
-    // Export command flags
     ExportCmd.Flags().StringP("organization", "o", "", "Organization to export (required)")
     ExportCmd.MarkFlagRequired("organization")
 
@@ -62,6 +79,6 @@ func init() {
     ExportCmd.MarkFlagRequired("token")
 
     ExportCmd.Flags().StringP("file-prefix", "f", "", "Output filenames prefix")
-
-    ExportCmd.Flags().StringP("hostname", "u", "", "GitHub Enterprise Server hostname URL (optional) Ex. https://github.example.com")
+    
+    ExportCmd.Flags().StringP("hostname", "n", "", "GitHub Enterprise Server hostname URL (optional) Ex. https://github.example.com")
 }
